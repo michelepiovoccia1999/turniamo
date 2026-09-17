@@ -14,6 +14,7 @@ const emptyForm = {
 export default function Insert() {
   const router = useRouter();
   const editId = router.query.id ? Number(router.query.id) : null;
+  const presetDate = typeof router.query.date === 'string' ? router.query.date : null;
 
   const [form, setForm] = useState(emptyForm);
   const [editing, setEditing] = useState(null);
@@ -23,6 +24,9 @@ export default function Insert() {
   useEffect(() => {
     if (!editId) {
       setEditing(null);
+      if (presetDate) {
+        setForm((f) => ({ ...f, date: presetDate }));
+      }
       return;
     }
     fetch('/api/shifts')

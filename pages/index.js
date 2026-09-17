@@ -188,7 +188,16 @@ export default function Visualizza({ user }) {
 
         {selectedDay && (
           <div className="day-group" style={{ marginTop: 20 }}>
-            <div className="day-group-title">{selectedDay}</div>
+            <div className="day-group-header">
+              <div className="day-group-title">{selectedDay}</div>
+              <button
+                type="button"
+                className="btn-secondary"
+                onClick={() => router.push(`/insert?date=${selectedDay}`)}
+              >
+                + Aggiungi turno
+              </button>
+            </div>
             {selectedShifts.length === 0 && (
               <div className="empty-state">Nessun turno in questo giorno</div>
             )}

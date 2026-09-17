@@ -406,6 +406,24 @@ th {
   font-size: 0.95rem;
 }
 
+.day-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  flex-wrap: wrap;
+}
+
+.day-group-header .day-group-title {
+  margin-bottom: 0;
+}
+
+.day-group-header .btn-secondary {
+  padding: 6px 12px;
+  font-size: 0.85rem;
+}
+
 .shift-row {
   display: flex;
   align-items: center;
