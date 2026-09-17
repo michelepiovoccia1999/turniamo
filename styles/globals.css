@@ -107,6 +107,12 @@ textarea {
   padding: 16px 20px 60px;
 }
 
+@media (max-width: 600px) {
+  .page {
+    padding: 12px 12px 40px;
+  }
+}
+
 /* Nav */
 .nav {
   background: var(--panel-bg);
@@ -124,11 +130,30 @@ textarea {
   justify-content: space-between;
   padding: 10px 20px;
   gap: 16px;
+  flex-wrap: wrap;
 }
 
 .nav-tabs {
   display: flex;
   gap: 4px;
+}
+
+@media (max-width: 600px) {
+  .nav-inner {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+  .nav-tab {
+    padding: 8px 10px;
+    font-size: 0.85rem;
+  }
+  .nav-user {
+    gap: 6px;
+    font-size: 0.8rem;
+  }
+  .nav-user span {
+    display: none;
+  }
 }
 
 .nav-tab {
@@ -223,6 +248,14 @@ textarea {
   align-items: center;
   justify-content: space-between;
   margin: 20px 0;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+@media (max-width: 600px) {
+  .page-header .btn-primary {
+    width: 100%;
+  }
 }
 
 .page-header h1 {
@@ -267,6 +300,12 @@ textarea {
   border: 1px solid var(--border);
   padding: 20px;
   margin-bottom: 20px;
+}
+
+@media (max-width: 600px) {
+  .panel {
+    padding: 14px;
+  }
 }
 
 .panel h2 {
@@ -598,6 +637,12 @@ th {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
+}
+
+@media (max-width: 420px) {
+  .time-row {
+    grid-template-columns: 1fr;
+  }
 }
 
 .duration-preview {
