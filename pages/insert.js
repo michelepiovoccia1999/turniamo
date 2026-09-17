@@ -17,6 +17,8 @@ export default function Insert() {
   const presetDate = typeof router.query.date === 'string' ? router.query.date : null;
 
   const [form, setForm] = useState(emptyForm);
+  const [dates, setDates] = useState([presetDate || emptyForm.date]);
+  const [dateToAdd, setDateToAdd] = useState('');
   const [editing, setEditing] = useState(null);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -25,7 +27,7 @@ export default function Insert() {
     if (!editId) {
       setEditing(null);
       if (presetDate) {
-        setForm((f) => ({ ...f, date: presetDate }));
+        setDates([presetDate]);
       }
       return;
     }
@@ -54,7 +56,18 @@ export default function Insert() {
   function cancelEdit() {
     setEditing(null);
     setForm(emptyForm);
+    setDates([emptyForm.date]);
     router.push('/insert');
+  }
+
+  function addDate() {
+    if (!dateToAdd) return;
+    setDates((prev) => (prev.includes(dateToAdd) ? prev : [...prev, dateToAdd].sort()));
+    setDateToAdd('');
+  }
+
+  function removeDate(d) {
+    setDates((prev) => prev.filter((x) => x !== d));
   }
 
   async function handleSubmit(e) {
@@ -69,11 +82,14 @@ export default function Insert() {
       setError('Inserisci orario di inizio e fine');
       return;
     }
+    if (!editing && dates.length === 0) {
+      setError('Seleziona almeno un giorno');
+      return;
+    }
 
     setSubmitting(true);
     try {
-      const payload = {
-        date: form.date,
+      const basePayload = {
         type: form.type,
         label: form.type === 'custom' ? form.label.trim() : undefined,
         start: form.start,
@@ -81,24 +97,36 @@ export default function Insert() {
         note: form.note.trim() || null,
       };
 
-      const url = editing ? `/api/shifts/${editing.id}` : '/api/shifts';
-      const method = editing ? 'PUT' : 'POST';
-      const res = await fetch(url, {
-        method,
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || 'Errore nel salvataggio');
+      if (editing) {
+        const res = await fetch(`/api/shifts/${editing.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...basePayload, date: form.date }),
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          setError(data.error || 'Errore nel salvataggio');
+          return;
+        }
+        router.push('/');
         return;
       }
 
-      if (editing) {
-        router.push('/');
-      } else {
-        setForm(emptyForm);
+      for (const d of dates) {
+        const res = await fetch('/api/shifts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ...basePayload, date: d }),
+        });
+        if (!res.ok) {
+          const data = await res.json();
+          setError(`${data.error || 'Errore nel salvataggio'} (${d})`);
+          return;
+        }
       }
+
+      setForm(emptyForm);
+      setDates([emptyForm.date]);
     } catch (err) {
       setError('Errore di rete, riprova');
     } finally {
@@ -125,15 +153,41 @@ export default function Insert() {
 
       <div className="panel">
         <form className="form-grid" onSubmit={handleSubmit}>
-          <div className="form-row">
-            <label>Data</label>
-            <input
-              type="date"
-              value={form.date}
-              onChange={(e) => updateField('date', e.target.value)}
-              required
-            />
-          </div>
+          {editing ? (
+            <div className="form-row">
+              <label>Data</label>
+              <input
+                type="date"
+                value={form.date}
+                onChange={(e) => updateField('date', e.target.value)}
+                required
+              />
+            </div>
+          ) : (
+            <div className="form-row">
+              <label>Giorni</label>
+              {dates.length > 0 && (
+                <div className="date-chips">
+                  {dates.map((d) => (
+                    <span className="date-chip" key={d}>
+                      {d}
+                      <button type="button" onClick={() => removeDate(d)} aria-label={`Rimuovi ${d}`}>×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+              <div className="date-add-row">
+                <input
+                  type="date"
+                  value={dateToAdd}
+                  onChange={(e) => setDateToAdd(e.target.value)}
+                />
+                <button type="button" className="btn-secondary" onClick={addDate}>
+                  + Aggiungi giorno
+                </button>
+              </div>
+            </div>
+          )}
 
           <div className="form-row">
             <label>Tipo turno</label>
@@ -187,7 +241,7 @@ export default function Insert() {
 
           {form.start && form.end && (
             <div className="duration-preview">
-              Durata: {previewHours.toFixed(2)} ore
+              Durata: {previewHours.toFixed(2)} ore{!editing && dates.length > 1 ? ` × ${dates.length} giorni` : ''}
             </div>
           )}
 
@@ -203,7 +257,11 @@ export default function Insert() {
 
           <div className="form-actions">
             <button type="submit" className="btn-primary" disabled={submitting}>
-              {submitting ? 'Salvataggio...' : 'Salva turno'}
+              {submitting
+                ? 'Salvataggio...'
+                : !editing && dates.length > 1
+                  ? `Salva su ${dates.length} giorni`
+                  : 'Salva turno'}
             </button>
           </div>
         </form>
