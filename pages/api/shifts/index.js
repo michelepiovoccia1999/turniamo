@@ -1,6 +1,6 @@
 const db = require('../../../lib/db');
 const { getUserIdFromReq } = require('../../../lib/auth');
-const { computeHours, SHIFT_TYPES } = require('../../../lib/shiftUtils');
+const { computeHours, SHIFT_TYPES, isHourlessType } = require('../../../lib/shiftUtils');
 
 const VALID_TYPES = SHIFT_TYPES.map((t) => t.value);
 
@@ -26,17 +26,21 @@ export default async function handler(req, res) {
 
   if (req.method === 'POST') {
     const { date, type, label, start, end, note } = req.body || {};
-    if (!date || !type || !start || !end) {
-      return res.status(400).json({ error: 'Data, tipo, orario inizio e fine sono obbligatori' });
+    if (!date || !type) {
+      return res.status(400).json({ error: 'Data e tipo sono obbligatori' });
     }
     if (!VALID_TYPES.includes(type)) {
       return res.status(400).json({ error: 'Tipo turno non valido' });
+    }
+    const hourless = isHourlessType(type);
+    if (!hourless && (!start || !end)) {
+      return res.status(400).json({ error: 'Orario inizio e fine sono obbligatori' });
     }
     const finalLabel = type === 'custom' ? (label || '').trim() : SHIFT_TYPES.find((t) => t.value === type).label;
     if (type === 'custom' && !finalLabel) {
       return res.status(400).json({ error: "L'etichetta è obbligatoria per i turni custom" });
     }
-    const hours = computeHours(start, end);
+    const hours = hourless ? 0 : computeHours(start, end);
 
     const { data: created, error } = await db
       .from('shifts')
@@ -45,8 +49,8 @@ export default async function handler(req, res) {
         date,
         type,
         label: finalLabel,
-        start,
-        end,
+        start: hourless ? '' : start,
+        end: hourless ? '' : end,
         hours,
         note: note || null,
       })

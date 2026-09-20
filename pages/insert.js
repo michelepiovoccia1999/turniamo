@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/router';
-import { SHIFT_TYPES, computeHours, toDateStr } from '../lib/shiftUtils';
+import { SHIFT_TYPES, computeHours, toDateStr, isHourlessType } from '../lib/shiftUtils';
 
 const emptyForm = {
   date: toDateStr(new Date()),
@@ -10,6 +10,29 @@ const emptyForm = {
   end: '',
   note: '',
 };
+
+const DEFAULT_TIMES_KEY = 'turniamo_default_times';
+
+function getDefaultTimes(type) {
+  try {
+    const raw = window.localStorage.getItem(DEFAULT_TIMES_KEY);
+    const all = raw ? JSON.parse(raw) : {};
+    return all[type] || null;
+  } catch (err) {
+    return null;
+  }
+}
+
+function saveDefaultTimes(type, start, end) {
+  try {
+    const raw = window.localStorage.getItem(DEFAULT_TIMES_KEY);
+    const all = raw ? JSON.parse(raw) : {};
+    all[type] = { start, end };
+    window.localStorage.setItem(DEFAULT_TIMES_KEY, JSON.stringify(all));
+  } catch (err) {
+    // storage non disponibile: ignora
+  }
+}
 
 export default function Insert() {
   const router = useRouter();
@@ -28,6 +51,10 @@ export default function Insert() {
       setEditing(null);
       if (presetDate) {
         setDates([presetDate]);
+      }
+      const saved = getDefaultTimes(emptyForm.type);
+      if (saved) {
+        setForm((f) => ({ ...f, start: saved.start, end: saved.end }));
       }
       return;
     }
@@ -53,6 +80,20 @@ export default function Insert() {
     setForm((f) => ({ ...f, [field]: value }));
   }
 
+  function selectType(type) {
+    setForm((f) => {
+      const next = { ...f, type };
+      if (!isHourlessType(type) && type !== 'custom') {
+        const saved = getDefaultTimes(type);
+        if (saved) {
+          next.start = saved.start;
+          next.end = saved.end;
+        }
+      }
+      return next;
+    });
+  }
+
   function cancelEdit() {
     setEditing(null);
     setForm(emptyForm);
@@ -74,11 +115,13 @@ export default function Insert() {
     e.preventDefault();
     setError('');
 
+    const hourless = isHourlessType(form.type);
+
     if (form.type === 'custom' && !form.label.trim()) {
       setError("L'etichetta è obbligatoria per i turni custom");
       return;
     }
-    if (!form.start || !form.end) {
+    if (!hourless && (!form.start || !form.end)) {
       setError('Inserisci orario di inizio e fine');
       return;
     }
@@ -92,10 +135,14 @@ export default function Insert() {
       const basePayload = {
         type: form.type,
         label: form.type === 'custom' ? form.label.trim() : undefined,
-        start: form.start,
-        end: form.end,
+        start: hourless ? '' : form.start,
+        end: hourless ? '' : form.end,
         note: form.note.trim() || null,
       };
+
+      if (!hourless && form.type !== 'custom') {
+        saveDefaultTimes(form.type, form.start, form.end);
+      }
 
       if (editing) {
         const res = await fetch(`/api/shifts/${editing.id}`, {
@@ -125,7 +172,8 @@ export default function Insert() {
         }
       }
 
-      setForm(emptyForm);
+      const resetSaved = getDefaultTimes(emptyForm.type);
+      setForm(resetSaved ? { ...emptyForm, start: resetSaved.start, end: resetSaved.end } : emptyForm);
       setDates([emptyForm.date]);
     } catch (err) {
       setError('Errore di rete, riprova');
@@ -134,6 +182,7 @@ export default function Insert() {
     }
   }
 
+  const formHourless = isHourlessType(form.type);
   const previewHours = computeHours(form.start, form.end);
 
   return (
@@ -197,7 +246,7 @@ export default function Insert() {
                   key={t.value}
                   type="button"
                   className={`type-btn ${form.type === t.value ? 'active' : ''}`}
-                  onClick={() => updateField('type', t.value)}
+                  onClick={() => selectType(t.value)}
                 >
                   {t.label}
                 </button>
@@ -218,30 +267,38 @@ export default function Insert() {
             </div>
           )}
 
-          <div className="time-row">
-            <div className="form-row">
-              <label>Orario inizio</label>
-              <input
-                type="time"
-                value={form.start}
-                onChange={(e) => updateField('start', e.target.value)}
-                required
-              />
+          {!formHourless && (
+            <div className="time-row">
+              <div className="form-row">
+                <label>Orario inizio</label>
+                <input
+                  type="time"
+                  value={form.start}
+                  onChange={(e) => updateField('start', e.target.value)}
+                  required
+                />
+              </div>
+              <div className="form-row">
+                <label>Orario fine</label>
+                <input
+                  type="time"
+                  value={form.end}
+                  onChange={(e) => updateField('end', e.target.value)}
+                  required
+                />
+              </div>
             </div>
-            <div className="form-row">
-              <label>Orario fine</label>
-              <input
-                type="time"
-                value={form.end}
-                onChange={(e) => updateField('end', e.target.value)}
-                required
-              />
-            </div>
-          </div>
+          )}
 
-          {form.start && form.end && (
+          {!formHourless && form.start && form.end && (
             <div className="duration-preview">
               Durata: {previewHours.toFixed(2)} ore{!editing && dates.length > 1 ? ` × ${dates.length} giorni` : ''}
+            </div>
+          )}
+
+          {formHourless && (
+            <div className="duration-preview">
+              Nessun orario da registrare — non incide sul monte ore{!editing && dates.length > 1 ? ` (${dates.length} giorni)` : ''}
             </div>
           )}
 

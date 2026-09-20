@@ -3,10 +3,7 @@ import { useRouter } from 'next/router';
 import ThemeToggle from '../components/ThemeToggle';
 
 export default function Login({ onAuthed }) {
-  const [mode, setMode] = useState('login');
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const router = useRouter();
@@ -16,12 +13,10 @@ export default function Login({ onAuthed }) {
     setError('');
     setSubmitting(true);
     try {
-      const url = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
-      const body = mode === 'login' ? { username, password } : { username, password, name };
-      const res = await fetch(url, {
+      const res = await fetch('/api/auth/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body: JSON.stringify({ username }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -44,38 +39,9 @@ export default function Login({ onAuthed }) {
         <h1>Turniamo</h1>
         <p className="subtitle">Gestisci i tuoi turni di lavoro</p>
 
-        <div className="auth-tabs">
-          <button
-            type="button"
-            className={mode === 'login' ? 'active' : ''}
-            onClick={() => { setMode('login'); setError(''); }}
-          >
-            Accedi
-          </button>
-          <button
-            type="button"
-            className={mode === 'register' ? 'active' : ''}
-            onClick={() => { setMode('register'); setError(''); }}
-          >
-            Registrati
-          </button>
-        </div>
-
         {error && <div className="error-msg">{error}</div>}
 
         <form onSubmit={handleSubmit} className="form-grid">
-          {mode === 'register' && (
-            <div className="form-row">
-              <label>Nome</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                required
-                placeholder="Il tuo nome"
-              />
-            </div>
-          )}
           <div className="form-row">
             <label>Username</label>
             <input
@@ -85,21 +51,11 @@ export default function Login({ onAuthed }) {
               required
               autoComplete="username"
               placeholder="username"
-            />
-          </div>
-          <div className="form-row">
-            <label>Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-              placeholder="••••••••"
+              autoFocus
             />
           </div>
           <button type="submit" className="btn-primary" disabled={submitting}>
-            {submitting ? 'Attendere...' : mode === 'login' ? 'Accedi' : 'Crea account'}
+            {submitting ? 'Attendere...' : 'Accedi'}
           </button>
         </form>
       </div>

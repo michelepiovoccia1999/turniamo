@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'next/router';
-import { SHIFT_TYPES, startOfWeek, endOfWeek, toDateStr } from '../lib/shiftUtils';
+import { SHIFT_TYPES, startOfWeek, endOfWeek, toDateStr, isHourlessType } from '../lib/shiftUtils';
 
 function currentMonthValue() {
   const d = new Date();
@@ -8,7 +8,7 @@ function currentMonthValue() {
 }
 
 const TYPE_LABELS = Object.fromEntries(SHIFT_TYPES.map((t) => [t.value, t.label]));
-const TYPE_SHORT = { mattina: 'M', pomeriggio: 'P', notte: 'N', custom: 'C' };
+const TYPE_SHORT = { mattina: 'M', pomeriggio: 'P', notte: 'N', smonto: 'S', riposo: 'R', custom: 'C' };
 const WEEKDAY_LABELS = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
 
 function buildCalendarWeeks(monthValue) {
@@ -174,7 +174,7 @@ export default function Visualizza({ user }) {
                             <span className="badge-type-label">
                               {s.type === 'custom' ? s.label : TYPE_LABELS[s.type]}
                             </span>
-                            <span>· {s.hours.toFixed(1)}h</span>
+                            {!isHourlessType(s.type) && <span>· {s.hours.toFixed(1)}h</span>}
                           </span>
                         ))}
                       </div>
@@ -205,7 +205,9 @@ export default function Visualizza({ user }) {
               <div className="shift-row" key={s.id}>
                 <div className="shift-info">
                   <span className={`shift-type-badge badge-${s.type}`}>{TYPE_LABELS[s.type] === s.label ? s.label : `${TYPE_LABELS[s.type]} · ${s.label}`}</span>
-                  <span className="shift-time">{s.start} - {s.end} ({s.hours.toFixed(2)}h)</span>
+                  {!isHourlessType(s.type) && (
+                    <span className="shift-time">{s.start} - {s.end} ({s.hours.toFixed(2)}h)</span>
+                  )}
                   {s.note && <span className="shift-note">{s.note}</span>}
                 </div>
                 <div className="shift-actions">

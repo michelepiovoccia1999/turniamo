@@ -1,4 +1,3 @@
-const bcrypt = require('bcryptjs');
 const db = require('../../../lib/db');
 const { createSessionCookie } = require('../../../lib/auth');
 
@@ -8,21 +7,33 @@ export default async function handler(req, res) {
     return res.status(405).json({ error: 'Metodo non consentito' });
   }
 
-  const { username, password } = req.body || {};
-  if (!username || !password) {
-    return res.status(400).json({ error: 'Username e password sono obbligatori' });
+  const { username } = req.body || {};
+  const cleanUsername = (username || '').trim();
+  if (!cleanUsername) {
+    return res.status(400).json({ error: 'Username obbligatorio' });
   }
 
-  const { data: user } = await db
+  const { data: existing } = await db
     .from('users')
     .select('*')
-    .eq('username', username)
+    .eq('username', cleanUsername)
     .maybeSingle();
 
-  if (!user || !bcrypt.compareSync(password, user.password_hash)) {
-    return res.status(401).json({ error: 'Credenziali non valide' });
+  if (existing) {
+    res.setHeader('Set-Cookie', createSessionCookie(existing.id));
+    return res.status(200).json({ id: existing.id, username: existing.username, name: existing.name });
   }
 
-  res.setHeader('Set-Cookie', createSessionCookie(user.id));
-  return res.status(200).json({ id: user.id, username: user.username, name: user.name });
+  const { data: created, error } = await db
+    .from('users')
+    .insert({ username: cleanUsername, password_hash: '', name: cleanUsername })
+    .select('id, username, name')
+    .single();
+
+  if (error) {
+    return res.status(500).json({ error: "Errore nella creazione dell'account" });
+  }
+
+  res.setHeader('Set-Cookie', createSessionCookie(created.id));
+  return res.status(201).json(created);
 }

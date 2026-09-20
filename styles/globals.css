@@ -376,6 +376,8 @@ textarea {
 .dot-mattina { background: #f5a623; }
 .dot-pomeriggio { background: #3949ea; }
 .dot-notte { background: #6c3ce9; }
+.dot-smonto { background: #8a8f99; }
+.dot-riposo { background: #2ea043; }
 .dot-custom { background: #17a884; }
 
 table {
@@ -456,6 +458,8 @@ th {
 .badge-mattina { background: #f5a623; }
 .badge-pomeriggio { background: #3949ea; }
 .badge-notte { background: #6c3ce9; }
+.badge-smonto { background: #8a8f99; }
+.badge-riposo { background: #2ea043; }
 .badge-custom { background: #17a884; }
 
 .shift-time {
